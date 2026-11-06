@@ -1,0 +1,47 @@
+.report-export-dialog{width:min(960px,calc(100vw - 28px));max-height:92vh}
+.report-export-dialog[open]{display:flex;flex-direction:column}
+.report-export-dialog .modal-header,.report-export-dialog .modal-footer{flex-shrink:0}
+.report-export-dialog .modal-header{align-items:flex-start}
+.report-export-body{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;padding:22px 25px;min-height:0;overflow:auto}
+.report-export-body>*{min-width:0}
+.report-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.report-section-head h3{font-size:13px}
+.report-section-head .muted{font-size:11px}
+.report-hint{font-size:12px;line-height:1.7;color:var(--muted);margin:4px 0 0}
+.report-text-button{border:0;background:none;color:var(--teal);font-size:12px;padding:2px 7px}
+.report-stores{display:grid;gap:6px;max-height:158px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:9px 12px}
+.report-store-option,.report-fields label{display:flex;align-items:center;gap:9px;cursor:pointer;min-width:0;font-size:12px;line-height:1.6}
+.report-store-option{padding:5px 2px;overflow-wrap:anywhere}
+.report-export-dialog input[type=checkbox]{accent-color:var(--teal);width:16px;height:16px;flex:0 0 16px;margin:0}
+.report-setting-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+.report-export-dialog .field{display:grid;gap:6px;font-size:12px}
+.report-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;border:1px solid var(--line);border-radius:9px;padding:16px}
+.report-preview{overflow:auto;border:1px solid var(--line);border-radius:9px;max-height:235px;margin-top:10px}
+.report-preview table{border-collapse:collapse;min-width:100%;font-size:11px}
+.report-preview th{white-space:nowrap;text-align:left;background:#f6f9fb;position:sticky;top:0;color:var(--muted);font-weight:500}
+.report-preview th,.report-preview td{padding:9px 12px;border-bottom:1px solid var(--line);min-width:100px;max-width:280px;vertical-align:middle}
+.report-preview td{min-width:125px;overflow-wrap:anywhere}
+.report-preview img{display:block;width:43px;height:43px;object-fit:contain;border:1px solid var(--line);border-radius:5px}
+.report-preview-picture{display:block;padding:0;border:0;border-radius:5px;background:white;cursor:zoom-in}
+.report-preview-picture:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+.report-empty{padding:17px;color:var(--muted);font-size:12px}
+#reportExportStatus{font-size:12px;color:var(--teal);overflow-wrap:anywhere}
+#reportExportProgress{width:100%;height:7px;accent-color:var(--teal)}
+.report-export-dialog .report-export-footer{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:14px 25px;background:#fff}
+.report-export-feedback{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#f7f9fb;min-width:0}
+.report-export-feedback[data-state=working]{border-color:#9ad7d2;background:#f0faf8}
+.report-export-feedback[data-state=success]{border-color:#6dc8ac;background:#edf9f2}
+.report-export-feedback[data-state=error]{border-color:#e9a5a5;background:#fff4f3}
+.report-export-feedback[data-state=error] #reportExportStatus{color:#a52626}
+.report-export-feedback[data-state=cancelled] #reportExportStatus{color:#6e7380}
+.report-export-feedback #reportExportStatus{font-size:12px;line-height:1.6;max-height:90px;overflow:auto}
+.report-export-feedback progress{display:block;margin-top:8px}
+.report-export-feedback progress[hidden]{display:none}
+.report-export-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.report-save-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;min-width:0}
+#reportReadyPanel{margin-top:8px}
+#reportReadyPanel[hidden]{display:none}
+#reportReadyDownload{color:var(--teal);font-size:12px;text-decoration:underline;cursor:pointer}
+#reportReadyDownload[aria-disabled=true]{pointer-events:none;opacity:.55}
+.report-export-dialog .report-export-footer .btn{min-height:38px}
+@media(max-width:650px){.report-setting-grid{grid-template-columns:1fr}.report-fields{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:11px}.report-export-body{padding:17px;gap:17px}.report-export-dialog .modal-footer{gap:8px;padding:14px 17px}.report-export-dialog .modal-footer .btn{white-space:normal}.report-header-button{padding-left:10px;padding-right:10px}}
