@@ -30,6 +30,6 @@ let html = await fs.readFile(indexPath, 'utf8');
 html = html.replace(/<script defer src="\/(?:vendor\/[^"<>]+|report-export\.js[^"<>]*)"><\/script>\s*/g, '');
 html = html.replace(/<script id="public-startup-data" type="application\/json">[\s\S]*?<\/script>\s*/g, '');
 html = html.replace(/<script defer src="\/bootstrap\.js[^"<>]*"><\/script>/,
-  tag + '\n<script defer src="/bootstrap.js?v=20261106-report-sources-v1"></script>');
+  tag + '\n<script defer src="/bootstrap.js?v=20261106-report-all-records-v2"></script>');
 await fs.writeFile(indexPath, html);
 console.log(JSON.stringify({ startupPrepared: true, stores: catalog.stores.length, initialProducts: seed.products.length, startupBytes: Buffer.byteLength(startup), productRecords: catalog.products.length }));

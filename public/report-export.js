@@ -13,7 +13,7 @@
     { id: 'categoryOrder', label: '一级分类序号', width: 16, read: r => r.categoryOrder ?? '' },
     { id: 'categoryPosition', label: '分类内记录序号', width: 19, read: r => r.categoryPosition ?? '' },
     { id: 'orderStatus', label: '顺序核对状态', width: 42, read: r => r.orderStatus },
-    { id: 'allCategories', label: '全部出现分类', width: 40, read: r => r.categories.join(' / ') },
+    { id: 'allCategories', label: '全部出现分类', width: 40, selected: true, read: r => r.categories.join(' / ') },
     { id: 'sales', label: '页面展示销量', width: 19, selected: true, read: r => r.product.displayedSales || '' },
     { id: 'price', label: '现价（元）', width: 14, selected: true, numeric: true, read: r => recordedPrice(r.product, 'price') },
     { id: 'priceRecordedDate', label: '价格录屏日期', width: 18, read: r => r.product.priceReview?.status !== 'notVerifiedInNewRecording' ? r.product.priceReview?.recordedDate || r.product.sourceMedia?.recordedDate || '' : r.product.sourceMedia?.recordedDate || '' },
@@ -29,9 +29,9 @@
     { id: 'id', label: '商品记录编号', width: 35, read: r => r.product.id },
   ];
   const scopes = [
-    ['ordinary', '普通商品（去重，组包另存，推荐和活动不另计）'],
+    ['all', '全部已收录记录（含普通商品、组包及套餐）'],
+    ['ordinary', '仅普通商品（去重，不含组包及套餐）'],
     ['bundles', '仅组包 / 套餐'],
-    ['all', '全部已收录记录（含组包，按记录编号去重）'],
     ['filtered', '当前商品筛选结果（全部分页，按商品去重）'],
   ];
   let busy = false;
@@ -220,6 +220,9 @@
       '所属一级分类为本次导出归组使用的一个分类；全部出现分类保留已采集的其他出现位置。筛选单个分类时，导出归组为所选分类。',
       '商品名称、价格、销量、主图和原始截图沿用原采集记录。分类内记录序号用于定位采集页面，不表示当前客户端的实时排名。',
       '类目顺序或商品位置未核对的情况列于下表。可勾选一级分类序号、分类内记录序号和顺序核对状态，逐条查看。'];
+    lines.unshift('导出范围：' + scopes.find(([id]) => id === dialog.querySelector('#reportScope').value)[1]
+      + '；共 ' + reportRows.length + ' 条记录（普通商品 ' + reportRows.filter(row => row.isOrdinary).length
+      + ' 条，组包/套餐 ' + reportRows.filter(row => row.isBundle).length + ' 条），商品报表另有 1 行表头。');
     lines.push(format === 'xlsx' ? '图片为WPS原生单元格图片，请使用WPS打开并双击预览。使用Microsoft Excel时，请在工作台选择Excel通用表格后导出。'
       : format === 'xlsx-generic' ? '图片为普通内嵌浮动图片，无文字或跳转链接。' : '图片按独立PNG文件保存，商品清单列出对应文件名。');
     const groups = new Map();
@@ -296,7 +299,7 @@
     const filteredAllowed = filteredSnapshot && storeIds.size === 1 && storeIds.has(currentStore);
     const filteredOption = dialog.querySelector('#reportScope option[value="filtered"]');
     filteredOption.disabled = !filteredAllowed;
-    if (scopeName === 'filtered' && !filteredAllowed) dialog.querySelector('#reportScope').value = 'ordinary';
+    if (scopeName === 'filtered' && !filteredAllowed) dialog.querySelector('#reportScope').value = 'all';
     const scope = dialog.querySelector('#reportScope').value;
     rows = [];
     for (const store of data.stores.filter(store => storeIds.has(store.id))) {
@@ -321,7 +324,7 @@
           || categories.find(category => category.id === product.categoryId && !isPromotionEntry(category))
           || categories.find(category => !isPromotionEntry(category)) || categories[0];
         const position = primary ? positions.get(primary.id)?.get(product.id) ?? positiveOrder(product.categoryPlacements?.[primary.id]?.order) : null;
-        rows.push({ product, context, ownStore, category: primary, primaryCategory: primary?.name || '', categories: categories.map(category => category.name),
+        rows.push({ product, context, ownStore, isOrdinary: counting.countedIds.has(product.id), isBundle: counting.bundleIds.has(product.id), category: primary, primaryCategory: primary?.name || '', categories: categories.map(category => category.name),
           categoryOrder: positiveOrder(primary?.order), categoryPosition: position, categoryIndex: primary ? context.categories.indexOf(primary) : Infinity,
           storeIndex: data.stores.indexOf(store), recordIndex: rows.length, orderStatus: orderStatus(primary, position),
           evidence: sourceEvidence(context, product, scope === 'filtered' ? filteredCategory : '', scope === 'filtered' && filteredUnreadable) });
@@ -335,6 +338,14 @@
     const chosen = selectedFields();
     const images = rows.filter(row => Boolean(row.product.imageUrl)).length;
     dialog.querySelector('#reportSelectionCount').textContent = `${rows.length.toLocaleString('zh-CN')} 条商品记录 · ${chosen.length} 个字段`;
+    const scope = dialog.querySelector('#reportScope').value;
+    const ordinaryCount = rows.filter(row => row.isOrdinary).length;
+    const bundleCount = rows.filter(row => row.isBundle).length;
+    const otherCount = rows.filter(row => !row.isOrdinary && !row.isBundle).length;
+    dialog.querySelector('#reportScopeSummary').textContent = '当前范围：' + scopes.find(([id]) => id === scope)[1]
+      + '。普通商品 ' + ordinaryCount.toLocaleString('zh-CN') + ' 条，组包/套餐 ' + bundleCount.toLocaleString('zh-CN') + ' 条'
+      + (otherCount ? '，其他已收录记录 ' + otherCount.toLocaleString('zh-CN') + ' 条' : '')
+      + '；表头另占 1 行。同一记录出现于多个分类仍保留一行，可在“全部出现分类”中查找各分类。';
     const counts = [];
     if (chosen.some(field => field.id === 'image')) counts.push(`已记录主图 ${images.toLocaleString('zh-CN')} 张`);
     if (chosen.some(field => field.id === 'screenshot')) counts.push(`已关联原始截图 ${rows.filter(row => row.evidence.url).length.toLocaleString('zh-CN')} 条（同一画面可对应多个商品）`);
@@ -391,16 +402,17 @@
     const stores = [...data.stores].sort((a, b) => Number(b.id === currentStore) - Number(a.id === currentStore));
     dialog.innerHTML = '<div class="modal-header"><div><h2 id="reportExportTitle">导出商品报表</h2><p class="report-hint">勾选字段后，预览将随选择更新。</p></div>'
       + '<button class="icon-btn" data-action="close-dialog" data-dialog="reportExportDialog" aria-label="关闭">' + icon('close', 17) + '</button></div>'
-      + '<div class="modal-body report-export-body"><section><div class="report-section-head"><h3>导出门店</h3><div><button class="report-text-button" data-report="all-stores">全选</button>'
+      + '<div class="modal-body report-export-body"><section><div class="report-section-head"><h3>导出门店</h3><div><button class="report-text-button" data-report="all-stores">全选门店</button>'
       + '<button class="report-text-button" data-report="current-store"' + (!currentStore ? ' disabled' : '') + '>只选当前门店</button></div></div><div class="report-stores">'
       + stores.map(store => '<label class="report-store-option"><input type="checkbox" name="reportStore" value="' + esc(store.id) + '"'
         + (!currentStore || store.id === currentStore ? ' checked' : '') + '><span>' + esc(store.name) + '</span></label>').join('') + '</div></section>'
       + '<div class="report-setting-grid"><label class="field"><span>导出范围</span><select class="select" id="reportScope">'
       + scopes.map(([value, label]) => '<option value="' + value + '">' + label + '</option>').join('') + '</select></label>'
       + '<label class="field"><span>文件格式</span><select class="select" id="reportFormat"><option value="xlsx">WPS表格（单元格图片，双击预览）</option><option value="xlsx-generic">Excel通用表格（浮动小图）</option><option value="zip">图文压缩包（图片文件＋商品清单）</option></select></label></div>'
+      + '<p class="report-hint" id="reportScopeSummary" role="status"></p>'
       + '<label class="field"><span>导出排序</span><select class="select" id="reportSort"><option value="category">平台一级分类顺序 → 分类内记录顺序</option><option value="recorded">保留当前筛选顺序 / 数据保存顺序</option></select></label>'
       + '<p class="report-hint">默认按左侧一级分类从上到下归组，类内按已保存的页面或录屏顺序排列；未关联位置的商品排在类目末尾，未核对的顺序会注明。去重后序号可能有间隔。Excel 的“排序说明”及压缩包的说明文件保留核对状态，不表示当前实时排名。</p>'
-      + '<section><div class="report-section-head"><h3>选择导出字段</h3><div><button class="report-text-button" data-report="all-fields">全选</button><button class="report-text-button" data-report="clear-fields">清空</button></div></div><div class="report-fields">'
+      + '<section><div class="report-section-head"><h3>选择导出字段</h3><div><button class="report-text-button" data-report="all-fields">全选字段</button><button class="report-text-button" data-report="clear-fields">清空字段</button></div></div><div class="report-fields">'
       + fields.map(field => '<label><input type="checkbox" name="reportField" value="' + field.id + '"' + (field.selected ? ' checked' : '') + '><span>' + esc(field.label) + '</span></label>').join('') + '</div></section>'
       + '<p class="report-hint">默认导出WPS原生单元格图片：主图和截图都只显示小图，在WPS中双击图片预览。没有跳转链接或额外文字，无需手动调整图片大小。使用Microsoft Excel时请选择“Excel通用表格”。压缩包保留完整截图。上方预览图片也可点击放大。</p>'
       + '<section id="reportLocalSources" hidden><button class="btn" data-report="source-folder">选择本地截图文件夹</button><input id="reportSourceFiles" type="file" webkitdirectory multiple hidden><p class="report-hint" id="reportSourceFolderStatus"></p></section>'
