@@ -299,6 +299,11 @@ function warning(){return storageProblem?'<div class="storage-warning" role="ale
 function render(){
   $('#navStores').classList.toggle('active',state.route!=='records');
   $('#navRecords').classList.toggle('active',state.route==='records');
+  if(state.route==='detail'&&!state.preview&&window.PUBLIC_MANIFEST.storePacks?.[state.storeId]&&!window.PUBLIC_STORE_READY[state.storeId]){
+    $('#main').innerHTML=publicStoreLoadingMarkup(state.storeId);
+    if(!window.PUBLIC_STORE_ERRORS[state.storeId])publicLoadStore(state.storeId).catch(()=>{});
+    return;
+  }
   $('#main').innerHTML=warning()+(state.route==='detail'?renderDetail():state.route==='records'?renderRecords():renderStores());
   fillIcons();
 }
@@ -505,7 +510,7 @@ function matchingListMarkup(ctx){
 }
 
 function renderMatching(ctx){
- const d=matchingFor(ctx);if(!d)return '<section class="panel"><div class="section-body">'+smallEmpty((window.PUBLIC_MANIFEST?.matching[ctx.store.id]?'正在加载匹对结果':'这家店尚无匹对结果'),'取得竞品快照和本店商品池后，结果将在此展示。','box')+'</div></section>';
+ const d=matchingFor(ctx);if(!d){const error=window.PUBLIC_MATCH_ERRORS[ctx.store.id];return '<section class="panel"><div class="section-body">'+smallEmpty(error?'匹对结果暂未加载完成':(window.PUBLIC_MANIFEST?.matching[ctx.store.id]?'正在加载匹对结果':'这家店尚无匹对结果'),error||'取得竞品快照和本店商品池后，结果将在此展示。','box')+(error?'<button class="btn primary" data-public-action="retry-matching">重新加载匹对结果</button>':'')+'</div></section>';}
  if(matchView.group==='pendingCommon')matchView.group='pending';
  const s=d.summary,bundleName=d.countingPolicy?.excludedCategoryNames?.[0]||'组包钜惠',bundleLabel=s.displayOnlyExcludedProducts?'另存记录（不计入）':'组包记录（不计入）',counts={all:s.eligibleCompetitorProducts??d.matches.length,bundles:s.bundleExcludedProducts||0,common:s.commonCompetitorProducts,competitorOnly:s.competitorOnlyProducts,ownOnly:s.ownOnlyProducts,pending:s.competitorPendingReview};
  const visibleIds=new Set((matchView.group==='bundles'?(d.excludedBundleMatches||[]):d.matches).map(r=>r.competitorId));
@@ -933,3 +938,4 @@ document.addEventListener('change',event=>{
  if(event.target.id==='publicGeoStore'){geoUi.storeId=event.target.value;geoUi.district=data.stores.find(s=>s.id===geoUi.storeId)?.district||'';renderGeoSettings()}
  if(event.target.id==='publicGeoDistrict'){geoUi.district=event.target.value;renderGeoSettings()}
 });
+window.PUBLIC_APP_READY=true;

@@ -731,6 +731,7 @@
     }
   }
 
+  window.CompetitorReportOpen = openExport;
   document.addEventListener('click', event => {
     if (event.target.closest('#reportReadyDownload')) {
       if (busy || !preparedReport) { event.preventDefault(); return; }

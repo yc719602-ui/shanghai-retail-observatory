@@ -2,7 +2,7 @@ services:
   - type: web
     name: shanghai-retail-observatory
     runtime: static
-    buildCommand: node scripts/verify.mjs
+    buildCommand: node scripts/prepare-startup.mjs && node scripts/verify.mjs
     staticPublishPath: ./public
     envVars:
       - key: SKIP_INSTALL_DEPS

@@ -23,6 +23,20 @@ async function readParts(parts){
  return JSON.parse(text.join(''));
 }
 const catalog=await readParts(manifest.catalog);
+const html=await fs.readFile(path.join(base,'index.html'),'utf8');
+const startupMatch=html.match(/<script id="public-startup-data" type="application\/json">([\s\S]*?)<\/script>/);
+if(!startupMatch)throw Error('缺少独立的门店列表资料');
+const startup=JSON.parse(startupMatch[1]);
+if(startup.seed.products.length!==0||startup.seed.stores.length!==catalog.stores.length)throw Error('首页不应预加载商品');
+if(/<script defer src="\/(?:vendor\/|report-export\.js)/.test(html))throw Error('报表组件不能阻塞首页');
+let packedProducts=0;
+for(const store of catalog.stores){
+ const url=startup.manifest.storePacks[store.id];
+ const pack=JSON.parse(await fs.readFile(path.join(base,url),'utf8'));
+ if(pack.storeId!==store.id||JSON.stringify(pack.products)!==JSON.stringify(catalog.products.filter(p=>p.storeId===store.id))||JSON.stringify(pack.categories)!==JSON.stringify(catalog.categories.filter(c=>c.storeId===store.id)))throw Error('门店按需资料不一致：'+store.id);
+ packedProducts+=pack.products.length;
+}
+if(packedProducts!==catalog.products.length)throw Error('按需加载商品数量不符');
 for(const parts of Object.values(manifest.matching))await readParts(parts);
 const serialized=JSON.stringify(catalog);
 const assetPaths=new Set(serialized.match(/\/assets\/[A-Za-z0-9_./-]+/g)||[]);
