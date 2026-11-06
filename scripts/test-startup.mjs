@@ -29,7 +29,7 @@ mode='online';delete ctx.PUBLIC_STORE_ERRORS[id];
 const first=ctx.publicLoadStore(id);assert.equal(ctx.publicLoadStore(id),first,'Concurrent opens should reuse the same request');await first;
 assert.equal(ctx.PUBLIC_STORE_READY[id],true);
 await Promise.all(startup.seed.stores.map(s=>ctx.publicLoadStore(s.id)));
-assert.equal(ctx.data.products.length,9353);assert.equal(ctx.data.categories.length,193);
+assert.equal(ctx.data.products.length,10654);assert.equal(ctx.data.categories.length,221);
 const before=requests;await ctx.publicLoadStore(id);assert.equal(requests,before,'Completed store data should be reused');
 mode='offline';await ctx.publicLoadMatching(id);
 assert.equal(ctx.PUBLIC_MATCH_LOADING[id],false);assert.ok(ctx.PUBLIC_MATCH_ERRORS[id]);

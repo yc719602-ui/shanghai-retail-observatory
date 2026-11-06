@@ -41,5 +41,5 @@ for(const parts of Object.values(manifest.matching))await readParts(parts);
 const serialized=JSON.stringify(catalog);
 const assetPaths=new Set(serialized.match(/\/assets\/[A-Za-z0-9_./-]+/g)||[]);
 for(const url of assetPaths)await fs.access(path.join(base,url.slice(1)));
-if(!manifest.counts||manifest.counts.stores!==7||manifest.counts.products!==9353)throw Error('迁移快照数量不符');
+if(!manifest.counts||manifest.counts.stores!==8||manifest.counts.products!==10654)throw Error('迁移快照数量不符');
 console.log(JSON.stringify({verified:true,stores:manifest.counts.stores,products:manifest.counts.products,matchingStores:Object.keys(manifest.matching).length,requiredResources:mustExist.size,catalogAssetReferences:assetPaths.size,revision:manifest.catalogRevision}));

@@ -5,7 +5,7 @@ window.PUBLIC_STORE_READY = {};
 window.PUBLIC_STORE_ERRORS = {};
 const publicStoreTasks = new Map();
 const publicScriptTasks = new Map();
-const PUBLIC_STARTUP_VERSION = '20261106-fast-start-v1';
+const PUBLIC_STARTUP_VERSION = '20261106-a76-fast-v2';
 
 async function publicFetch(url, parse = 'json') {
   let lastError;
