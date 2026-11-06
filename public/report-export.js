@@ -59,10 +59,21 @@
 
   // Script resources can be read from file:// without uploading or folder access.
   window.CompetitorReportReceiveScreenshot = (file, value) => pendingSources.get(file)?.resolve(value);
+  let localIndexState = location.protocol === 'file:' ? 'loading' : 'unused';
   const localIndexReady = location.protocol === 'file:' ? new Promise(resolve => {
     const script = document.createElement('script');
-    script.src = '报表截图/索引.js';
-    script.onload = script.onerror = () => { script.remove(); resolve(); if (dialog.open) refreshPreview(); };
+    script.src = '报表截图/索引.js?v=20261106-report-sources-v1';
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      localIndexState = window.CompetitorReportScreenshotIndex ? 'ready' : 'missing';
+      script.remove(); resolve();
+      if (dialog.open) refreshPreview();
+    };
+    const timer = setTimeout(finish, 15000);
+    script.onload = script.onerror = finish;
     document.head.appendChild(script);
   }) : Promise.resolve();
 
@@ -328,10 +339,16 @@
     if (chosen.some(field => field.id === 'image')) counts.push(`已记录主图 ${images.toLocaleString('zh-CN')} 张`);
     if (chosen.some(field => field.id === 'screenshot')) counts.push(`已关联原始截图 ${rows.filter(row => row.evidence.url).length.toLocaleString('zh-CN')} 条（同一画面可对应多个商品）`);
     dialog.querySelector('#reportImageCount').textContent = counts.length ? counts.join('；') + '。原记录缺失的字段会注明；读取失败将停止导出。' : '按勾选字段生成商品报表。';
-    const needsFolder = localEvidenceSelected(chosen);
+    const wantsScreenshots = chosen.some(field => field.id === 'screenshot');
+    const indexPending = location.protocol === 'file:' && wantsScreenshots && localIndexState === 'loading';
+    const needsFolder = !indexPending && localEvidenceSelected(chosen);
+    const missingSources = needsFolder ? rows.filter(row => row.evidence.url && !bundledSource(row.evidence)).length : 0;
     dialog.querySelector('#reportLocalSources').hidden = !needsFolder;
     dialog.querySelector('#reportSourceFolderStatus').textContent = sourceFolder ? '已校验：' + sourceFolder.name
-      : sourceFiles.size ? '已选择本地截图文件夹' : '缺少配套截图，请选择看板旁的“采集记录”文件夹。原视频文件夹不包含导出所需截图。';
+      : sourceFiles.size ? '已选择本地截图文件夹' : missingSources + ' 条记录缺少导出配套截图。请选择看板旁的“采集记录”文件夹；原视频文件夹不包含这些截图。';
+    if (wantsScreenshots && !indexPending && !needsFolder && location.protocol === 'file:') {
+      dialog.querySelector('#reportImageCount').textContent += ' 配套原始截图已就绪，无需选择文件夹。';
+    }
     const headings = chosen.map(field => '<th>' + esc(field.label) + '</th>').join('');
     const previewRows = rows.slice(0, 3).map(row => {
       const cells = chosen.map(field => {
@@ -346,8 +363,15 @@
     dialog.querySelector('#reportPreview').innerHTML = !chosen.length || !rows.length
       ? '<p class="report-empty">请选择门店、导出范围和至少一个字段。</p>'
       : '<table><thead><tr>' + headings + '</tr></thead><tbody>' + previewRows + '</tbody></table>';
-    dialog.querySelector('#reportStart').disabled = busy || !rows.length || !chosen.length || (needsFolder && !sourceFolder && !sourceFiles.size);
+    const missingFolder = needsFolder && !sourceFolder && !sourceFiles.size;
+    dialog.querySelector('#reportStart').disabled = busy || !rows.length || !chosen.length || indexPending || missingFolder;
     dialog.querySelector('#reportBrowserStart').disabled = dialog.querySelector('#reportStart').disabled;
+    if (!busy && !lastExport && !preparedReport) {
+      if (indexPending) feedback('正在检查导出所需的原始截图，请稍候…', 'idle');
+      else if (missingFolder) feedback('暂不能导出：' + missingSources + ' 条记录缺少配套截图，请在上方选择“采集记录”文件夹。', 'error');
+      else if (!rows.length || !chosen.length) feedback('请选择门店和至少一个导出字段。', 'idle');
+      else feedback('已准备好 ' + rows.length.toLocaleString('zh-CN') + ' 条记录' + (wantsScreenshots ? '及原始截图' : '') + '，点击下方按钮即可导出。', 'idle');
+    }
   }
 
   function openExport() {
