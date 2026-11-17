@@ -5,7 +5,7 @@ window.PUBLIC_STORE_READY = {};
 window.PUBLIC_STORE_ERRORS = {};
 const publicStoreTasks = new Map();
 const publicScriptTasks = new Map();
-const PUBLIC_STARTUP_VERSION = '20261117-yexiaoer-086-songjiang-v1';
+const PUBLIC_STARTUP_VERSION = '20261117-yexiaoer-a30-hengtong-v1';
 
 async function publicFetch(url, parse = 'json') {
   let lastError;
