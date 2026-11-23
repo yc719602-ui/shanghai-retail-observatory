@@ -62,7 +62,7 @@
   let localIndexState = location.protocol === 'file:' ? 'loading' : 'unused';
   const localIndexReady = location.protocol === 'file:' ? new Promise(resolve => {
     const script = document.createElement('script');
-    script.src = '报表截图/索引.js?v=20261106-report-sources-v1';
+    script.src = '报表截图/索引.js?v=20261123-report-bundles-v1';
     let finished = false;
     const finish = () => {
       if (finished) return;
@@ -223,6 +223,9 @@
     lines.unshift('导出范围：' + scopes.find(([id]) => id === dialog.querySelector('#reportScope').value)[1]
       + '；共 ' + reportRows.length + ' 条记录（普通商品 ' + reportRows.filter(row => row.isOrdinary).length
       + ' 条，组包/套餐 ' + reportRows.filter(row => row.isBundle).length + ' 条），商品报表另有 1 行表头。');
+    lines.push(dialog.querySelector('#reportIncludeBundles').checked ? '组包选项：包含组包钜惠商品行、主图和原始截图。' : '组包选项：已排除组包钜惠商品行、主图和原始截图。');
+    const historicalDates = [...new Set(reportRows.filter(row => row.product.dataFreshness?.status === 'historicalNotReRecorded').map(row => row.product.dataFreshness.recordedDate))];
+    if (historicalDates.length) lines.push('本次未重录的组包沿用历史记录，资料日期：' + historicalDates.join('、') + '。可选择价格录屏日期字段逐条核对。');
     lines.push(format === 'xlsx' ? '图片为WPS原生单元格图片，请使用WPS打开并双击预览。使用Microsoft Excel时，请在工作台选择Excel通用表格后导出。'
       : format === 'xlsx-generic' ? '图片为普通内嵌浮动图片，无文字或跳转链接。' : '图片按独立PNG文件保存，商品清单列出对应文件名。');
     const groups = new Map();
@@ -295,6 +298,10 @@
 
   function updateRows() {
     const storeIds = new Set([...dialog.querySelectorAll('[name="reportStore"]:checked')].map(input => input.value));
+    const includeBundles = dialog.querySelector('#reportIncludeBundles').checked;
+    const bundleOption = dialog.querySelector('#reportScope option[value="bundles"]');
+    bundleOption.disabled = !includeBundles;
+    if (!includeBundles && dialog.querySelector('#reportScope').value === 'bundles') dialog.querySelector('#reportScope').value = 'all';
     const scopeName = dialog.querySelector('#reportScope').value;
     const filteredAllowed = filteredSnapshot && storeIds.size === 1 && storeIds.has(currentStore);
     const filteredOption = dialog.querySelector('#reportScope option[value="filtered"]');
@@ -316,6 +323,7 @@
       });
       const ownStore = (data.ownStores || []).find(own => own.id === store.ownStoreMatch?.ownStoreId);
       for (const product of unique.values()) {
+        if (!includeBundles && counting.bundleIds.has(product.id)) continue;
         if (scope === 'ordinary' && !counting.countedIds.has(product.id)) continue;
         if (scope === 'bundles' && !counting.bundleIds.has(product.id)) continue;
         const memberships = counting.members.get(product.id) || new Set();
@@ -343,6 +351,7 @@
     const bundleCount = rows.filter(row => row.isBundle).length;
     const otherCount = rows.filter(row => !row.isOrdinary && !row.isBundle).length;
     dialog.querySelector('#reportScopeSummary').textContent = '当前范围：' + scopes.find(([id]) => id === scope)[1]
+      + (dialog.querySelector('#reportIncludeBundles').checked ? '' : '（已排除组包钜惠商品行及图片）')
       + '。普通商品 ' + ordinaryCount.toLocaleString('zh-CN') + ' 条，组包/套餐 ' + bundleCount.toLocaleString('zh-CN') + ' 条'
       + (otherCount ? '，其他已收录记录 ' + otherCount.toLocaleString('zh-CN') + ' 条' : '')
       + '；表头另占 1 行。同一记录出现于多个分类仍保留一行，可在“全部出现分类”中查找各分类。';
@@ -410,6 +419,8 @@
       + scopes.map(([value, label]) => '<option value="' + value + '">' + label + '</option>').join('') + '</select></label>'
       + '<label class="field"><span>文件格式</span><select class="select" id="reportFormat"><option value="xlsx">WPS表格（单元格图片，双击预览）</option><option value="xlsx-generic">Excel通用表格（浮动小图）</option><option value="zip">图文压缩包（图片文件＋商品清单）</option></select></label></div>'
       + '<p class="report-hint" id="reportScopeSummary" role="status"></p>'
+      + '<label class="report-store-option"><input type="checkbox" id="reportIncludeBundles" checked><span>包含组包钜惠商品和图片</span></label>'
+      + '<p class="report-hint">默认正常下载。取消勾选后，表格、商品清单及图片包均排除组包钜惠；预览数量会同步更新。</p>'
       + '<label class="field"><span>导出排序</span><select class="select" id="reportSort"><option value="category">平台一级分类顺序 → 分类内记录顺序</option><option value="recorded">保留当前筛选顺序 / 数据保存顺序</option></select></label>'
       + '<p class="report-hint">默认按左侧一级分类从上到下归组，类内按已保存的页面或录屏顺序排列；未关联位置的商品排在类目末尾，未核对的顺序会注明。去重后序号可能有间隔。Excel 的“排序说明”及压缩包的说明文件保留核对状态，不表示当前实时排名。</p>'
       + '<section><div class="report-section-head"><h3>选择导出字段</h3><div><button class="report-text-button" data-report="all-fields">全选字段</button><button class="report-text-button" data-report="clear-fields">清空字段</button></div></div><div class="report-fields">'

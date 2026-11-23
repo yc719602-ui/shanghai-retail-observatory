@@ -395,6 +395,8 @@ function userPauseBanner(ctx){
  return '<div class="preview-banner" role="status" data-collection-paused="true">'+icon('clock',17)+'<span><strong>已按你的要求暂停采集</strong><br>已保存 '+ctx.products.length+' 条按名称去重记录；全店尚未完成。'+position+'断点截图时间：'+esc(exactDateText(c.lastScreenAt))+'。等待你再次明确指令后继续。</span></div>';
 }
 function collectionStoppedBanner(ctx){
+ const refresh=ctx.observation?.refreshSummary;
+ if(refresh?.retainedBundleRecords)return '<div class="preview-banner" role="status"><span><strong>'+esc(refresh.recordedDate)+' 录屏数据已更新</strong><br>本次更新 '+esc(refresh.updatedRecords)+' 条商品记录。组包钜惠本次未录制，'+esc(refresh.retainedBundleRecords)+' 条组包沿用 '+esc(refresh.previousRecordedDate)+' 历史记录，每条保留原日期和截图。可在导出报表时取消勾选组包，同时排除商品行和图片。</span></div>';
  const o=ctx.observation;if(o?.priceReviewSummary){const r=o.priceReviewSummary;return '<div class="preview-banner" role="status"><span><strong>价格已按 '+esc(r.recordedDate)+' 新录屏复核</strong><br>已确认 '+r.clearPrices+' 条价格，'+r.unreadablePrices+' 条标记未看清；另 '+r.notVerifiedInNewRecording+' 条沿用原录屏价格，每条单独注明。'+(r.listingDetailsUpdated?'可辨销量及优惠同步更新；分类顺序与匹对结论保留原记录。':'商品分类、销量与匹对结论保留原采集内容；')+'可在商品下方查看价格复核画面。</span></div>'}if(o?.recordingScopeComplete)return '<div class="preview-banner" role="status"><span><strong>用户录屏范围已整理完成</strong><br>商品保留一级分类、视频位置及来源画面；组包另存，推荐和活动不额外计数。资料整理：'+esc(exactDateText(o.videoImportedAt))+'。'+(o.sourceVideo?.recordedDate?'录屏首屏时间：'+esc(recordedBuyerClock(o))+'；':'实际录制时间未核实；')+'完整长标题、规格及精确全店在售总数未独立核验。</span></div>';if(!o?.collectionStopReason)return '';
  return '<div class="preview-banner" role="status" style="background:#fff7e8;border-color:#f0d9aa;color:#805b20">'+icon('info',17)+'<span><strong>采集已停止 · '+esc(o.collectionStopLabel||'手机出现身份核实')+'</strong><br>已保存 '+ctx.products.length+' 条商品记录；全店商品尚未采集完成。'+ctx.categories.length+' 项为已记录的分类名称，不代表每类商品均已采集。停止时间：'+esc(exactDateText(o.stoppedAt))+'。详细现场见“来源与记录”。</span></div>';
 }
@@ -663,9 +665,10 @@ function videoSourceLabel(p){
   return media?.type==='userProvidedVideo'?videoPosition(media):'';
 }
 function productPriceReviewMarkup(p){
- const review=p.priceReview;if(!review)return '';
- if(review.status==='notVerifiedInNewRecording')return '<span class="cell-sub" title="'+esc(review.note||'')+'">沿用原录屏价格</span>';
- return '<span class="cell-sub" title="'+esc(review.sourceMedia?.videoName||'')+'">'+(review.status==='unreadable'?'新价格未看清':'价格复核')+' · '+esc(review.recordedDate)+' · '+esc(review.sourceMedia?.videoTimeLabel||'')+'</span>';
+ const historical=p.dataFreshness?.status==='historicalNotReRecorded'?'<span class="cell-sub">历史组包 · '+esc(p.dataFreshness.recordedDate)+'（本次未录制）</span>':'';
+ const review=p.priceReview;if(!review)return historical;
+ if(review.status==='notVerifiedInNewRecording')return historical+'<span class="cell-sub" title="'+esc(review.note||'')+'">沿用原录屏价格</span>';
+ return historical+'<span class="cell-sub" title="'+esc(review.sourceMedia?.videoName||'')+'">'+(review.status==='unreadable'?'新价格未看清':'价格复核')+' · '+esc(review.recordedDate)+' · '+esc(review.sourceMedia?.videoTimeLabel||'')+'</span>';
 }
 function productRowsMarkup(ctx){
   const products=filteredProducts(ctx);

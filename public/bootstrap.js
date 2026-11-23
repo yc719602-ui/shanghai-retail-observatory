@@ -5,7 +5,7 @@ window.PUBLIC_STORE_READY = {};
 window.PUBLIC_STORE_ERRORS = {};
 const publicStoreTasks = new Map();
 const publicScriptTasks = new Map();
-const PUBLIC_STARTUP_VERSION = '20261120-yexiaoer-a30-recording-v1';
+const PUBLIC_STARTUP_VERSION = '20261123-yexiaoer-a30-recording-v1';
 
 async function publicFetch(url, parse = 'json') {
   let lastError;
