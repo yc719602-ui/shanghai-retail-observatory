@@ -108,6 +108,7 @@
 
   function sourceTime(row) {
     const media = row.product.sourceMedia;
+    if (media?.type === 'userProvidedVideo' && media.recordedDate && !row.product.capturedAt && !media.recordedAt && !media.recordingStartedAt) return media.recordedDate + '（拍摄时刻未展示）';
     const value = row.product.capturedAt || media?.recordedAt || media?.recordingStartedAt || row.context.observation?.capturedAt;
     return value ? exactDateText(value) : media?.recordedDate || '';
   }

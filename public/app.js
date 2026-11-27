@@ -395,6 +395,8 @@ function userPauseBanner(ctx){
  return '<div class="preview-banner" role="status" data-collection-paused="true">'+icon('clock',17)+'<span><strong>已按你的要求暂停采集</strong><br>已保存 '+ctx.products.length+' 条按名称去重记录；全店尚未完成。'+position+'断点截图时间：'+esc(exactDateText(c.lastScreenAt))+'。等待你再次明确指令后继续。</span></div>';
 }
 function collectionStoppedBanner(ctx){
+ const pictureRefresh=ctx.observation?.imagePriceRefreshSummary;
+ if(pictureRefresh)return '<div class="preview-banner" role="status"><span><strong>'+esc(pictureRefresh.recordedDate)+' 商品图片与价格已更新</strong><br>本次整理 '+esc(pictureRefresh.updatedRecords)+' 条普通商品，不含组包钜惠。门店评分等基础信息沿用 '+esc(pictureRefresh.headerInfoRecordedDate)+' 历史记录。本段录屏未展示拍摄时刻，资料日期按视频文件记录。</span></div>';
  const refresh=ctx.observation?.refreshSummary;
  if(refresh?.retainedBundleRecords)return '<div class="preview-banner" role="status"><span><strong>'+esc(refresh.recordedDate)+' 录屏数据已更新</strong><br>本次更新 '+esc(refresh.updatedRecords)+' 条商品记录。组包钜惠本次未录制，'+esc(refresh.retainedBundleRecords)+' 条组包沿用 '+esc(refresh.previousRecordedDate)+' 历史记录，每条保留原日期和截图。可在导出报表时取消勾选组包，同时排除商品行和图片。</span></div>';
  const o=ctx.observation;if(o?.priceReviewSummary){const r=o.priceReviewSummary;return '<div class="preview-banner" role="status"><span><strong>价格已按 '+esc(r.recordedDate)+' 新录屏复核</strong><br>已确认 '+r.clearPrices+' 条价格，'+r.unreadablePrices+' 条标记未看清；另 '+r.notVerifiedInNewRecording+' 条沿用原录屏价格，每条单独注明。'+(r.listingDetailsUpdated?'可辨销量及优惠同步更新；分类顺序与匹对结论保留原记录。':'商品分类、销量与匹对结论保留原采集内容；')+'可在商品下方查看价格复核画面。</span></div>'}if(o?.recordingScopeComplete)return '<div class="preview-banner" role="status"><span><strong>用户录屏范围已整理完成</strong><br>商品保留一级分类、视频位置及来源画面；组包另存，推荐和活动不额外计数。资料整理：'+esc(exactDateText(o.videoImportedAt))+'。'+(o.sourceVideo?.recordedDate?'录屏首屏时间：'+esc(recordedBuyerClock(o))+'；':'实际录制时间未核实；')+'完整长标题、规格及精确全店在售总数未独立核验。</span></div>';if(!o?.collectionStopReason)return '';
@@ -439,7 +441,7 @@ function renderDetail(){
     metric('页面商品数',text(o?.onSaleProductCountLabel??o?.onSaleProductCount),o?.countUnit||'数量与单位按页面记录')+
     metric('一级分类',text(total),has(total)?(o?.merchantCategoryCount!==undefined?'含推荐/活动入口；店铺分类'+o.merchantCategoryCount+'项':'页面展示或完整枚举的分类'):(o?'分类总数尚不确定':'尚未采集分类'))+
     metric('收录记录',o?scope.total:'<span class="dim">—</span>',o?productCountingText(scope):'尚未采集商品')+
-    (o?.recordingScopeComplete?metric('录屏资料整理',esc(dateText(o.videoImportedAt,true)),o.sourceVideo?.recordedDate?'录屏首屏 '+buyerMinuteDateText(o.sourceVideo.recordedAt):'实际录制时间未核实',null,'',true):metric('商品资料采集',o?esc(dateText(o.capturedAt,true)):'<span class="dim">—</span>',o?({complete:'本次全店列表已采集',merchantComplete:'普通分类列表已采集，推荐排序待核对',partial:'本次为部分采集'}[captureDisplayState(o)]||'有效采集记录'):'尚无有效采集记录',null,'',true))+'</div>'+
+    (o?.recordingScopeComplete?metric('录屏资料整理',esc(dateText(o.videoImportedAt,true)),o.sourceVideo?.recordedAt?'录屏首屏 '+buyerMinuteDateText(o.sourceVideo.recordedAt):o.sourceVideo?.recordedDate?'资料日期 '+esc(o.sourceVideo.recordedDate)+' · 拍摄时刻未展示':'实际录制时间未核实',null,'',true):metric('商品资料采集',o?esc(dateText(o.capturedAt,true)):'<span class="dim">—</span>',o?({complete:'本次全店列表已采集',merchantComplete:'普通分类列表已采集，推荐排序待核对',partial:'本次为部分采集'}[captureDisplayState(o)]||'有效采集记录'):'尚无有效采集记录',null,'',true))+'</div>'+
     (status==='failed'?'<div class="preview-banner" style="background:#fff7f3;border-color:#f0ded6;color:#a16c4a">'+icon('info',17)+'<span>最近一次采集失败。上方经营信息保留自上次有效记录，详情见“来源与记录”。</span></div>':'')+
     orderBuyerPanel(s.id,state.preview)+
     '<nav class="tabs" aria-label="店铺详情栏目" role="tablist">'+[['catalog','分类与商品'],['delivery','配送与活动'],['sources','来源与记录'],['matching','匹对结果']].map(t=>'<button class="tab'+(state.tab===t[0]?' active':'')+'" role="tab" aria-selected="'+(state.tab===t[0])+'" aria-controls="detailContent" id="tab-'+t[0]+'" data-action="detail-tab" data-tab="'+t[0]+'">'+t[1]+(t[0]==='catalog'&&o?'<span class="tab-count">'+ctx.products.length+' 条已收录</span>':'')+'</button>').join('')+'</nav>'+
@@ -579,6 +581,7 @@ function categoryOrderText(ctx,p){
   const placement=sourcePlacement(p),category=ctx.categories.find(c=>c.id===state.category);
   if(category?.replaySkippedByUser)return '分类记录 '+(placement?'#'+placement.order+' · ':'')+'排序未核对（'+category.name+'）';
   if(!placement)return '分类顺序未确认';
+  if(category?.orderEvidence?.status==='historical')return '分类记录 #'+placement.order+' · 分类位置沿用'+category.lastOrderRecordedDate+'，图片与价格已更新';
   return '分类记录 #'+placement.order+(category?.orderEvidence?.status==='reconstructed'?' · 逐屏顺序已核对':' · 顺序待核对');
 }
 function productEvidence(ctx,p){
